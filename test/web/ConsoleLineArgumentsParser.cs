@@ -63,8 +63,7 @@ namespace web
         {
             if (b.HasValue)
             {
-                char c = b.Value ? '1' : '0';
-                bld.Append($" -{opName} {c}");
+                bld.Append($" -{opName} {b.Value}");
             }
         }
     }
