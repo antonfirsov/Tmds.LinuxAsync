@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace web
 {
@@ -43,6 +44,29 @@ namespace web
 
         [Option('i', "inline-app", Required = false, Default = false, HelpText = "Application code is non blocking")]
         public bool? ApplicationCodeIsNonBlocking { get; set; }
+
+        override string ToString()
+        {
+            StringBuilder bld = new StringBuilder();
+            bld.Append($"-e {SocketEngine} -t {ThreadCount}");
+            AppendValOf(bld, 'a', UseAio);
+            AppendValOf(bld, 'c', DispatchContinuations);
+            AppendValOf(bld, 's', DeferSends);
+            AppendValOf(bld, 'r', DeferReceives);
+            AppendValOf(bld, 'w', DontAllocateMemoryForIdleConnections);
+            AppendValOf(bld, 'p', CoalesceWrites);
+            AppendValOf(bld, 'i', ApplicationCodeIsNonBlocking);
+            return bld.ToString();
+        }
+
+        private static void AppendValOf(StringBuilder bld, char opName, bool? b)
+        {
+            if (b.HasValue)
+            {
+                char c = b.Value ? '1' : '0';
+                bld.Append($" -{opName} {c}");
+            }
+        }
     }
 
     public static class ConsoleLineArgumentsParser

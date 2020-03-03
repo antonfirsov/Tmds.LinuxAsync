@@ -16,6 +16,8 @@ namespace web
 
             if (isSuccess)
             {
+                Console.WriteLine($"Command Line args:\n{options}");
+
                 CreateHostBuilder(args, options).Build().Run();
             }
         }
