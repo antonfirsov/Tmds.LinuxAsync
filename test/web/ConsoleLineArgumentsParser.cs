@@ -45,7 +45,7 @@ namespace web
         [Option('i', "inline-app", Required = false, Default = false, HelpText = "Application code is non blocking")]
         public bool? ApplicationCodeIsNonBlocking { get; set; }
 
-        override string ToString()
+        public override string ToString()
         {
             StringBuilder bld = new StringBuilder();
             bld.Append($"-e {SocketEngine} -t {ThreadCount}");
