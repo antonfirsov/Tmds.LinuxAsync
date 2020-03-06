@@ -122,6 +122,12 @@ namespace Tmds.LinuxAsync
                 // Try executing without a lock.
                 if (!batchOnIOUringThread && preferSync && Volatile.Read(ref _tail) == null)
                 {
+                    if (operation is AsyncSocketOperation sockOp)
+                    {
+                        var op = sockOp.Saea.CurrentOperation;
+                        System.Console.WriteLine($"Trying to run {op} synchronously.");
+                    }
+                    
                     finished = operation.TryExecuteSync();
                 }
 
