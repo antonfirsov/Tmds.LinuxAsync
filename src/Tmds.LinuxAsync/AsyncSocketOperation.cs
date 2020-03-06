@@ -165,6 +165,7 @@ namespace Tmds.LinuxAsync
                     }
                     else if (result == AsyncExecutionResult.Executing)
                     {
+                        Console.WriteLine("Calling recv");
                         (socketError, bytesTransferred) = SocketPal.Recv(socket.SafeHandle, memory);
                         result = socketError == SocketError.WouldBlock ? AsyncExecutionResult.WaitForPoll : AsyncExecutionResult.Finished;
                     }
@@ -276,6 +277,7 @@ namespace Tmds.LinuxAsync
                     {
                         Memory<byte> remaining = memory.Slice(_bytesTransferredTotal);
                         int bytesTransferred;
+                        Console.WriteLine("Calling send");
                         (socketError, bytesTransferred) = SocketPal.Send(socket.SafeHandle, remaining);
                         if (socketError == SocketError.Success)
                         {
