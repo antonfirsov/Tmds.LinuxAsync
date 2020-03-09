@@ -1,3 +1,4 @@
+using System;
 using System.Runtime.CompilerServices;
 
 namespace Tmds.LinuxAsync.Tracing
@@ -43,25 +44,37 @@ namespace Tmds.LinuxAsync.Tracing
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Exit<TRetVal>(object contextObject, TRetVal retVal, [CallerMemberName] string methodName = "")
+        public static void Return<TRetVal>(object contextObject, TRetVal retVal, [CallerMemberName] string methodName = "")
         {
             if (IsEnabled) SocketEventSource.Log.Exit(IdOf(contextObject), methodName, $"{retVal}");
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Exit<TRetVal>(ICustomLogId contextObject, TRetVal retVal, [CallerMemberName] string methodName = "")
+        public static void Return<TRetVal>(ICustomLogId contextObject, TRetVal retVal, [CallerMemberName] string methodName = "")
         {
             if (IsEnabled) SocketEventSource.Log.Exit(contextObject.LogId, methodName, $"{retVal}");
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Exit(ICustomLogId contextObject, [CallerMemberName] string methodName = "")
+        {
+            if (IsEnabled) SocketEventSource.Log.Exit(contextObject.LogId, methodName, $"");
+        }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Exit<TRetVal>(TRetVal retVal, [CallerMemberName] string methodName = "")
+        public static void Exit(object contextObject, [CallerMemberName] string methodName = "")
+        {
+            if (IsEnabled) SocketEventSource.Log.Exit(IdOf(contextObject), methodName, $"");
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Return<TRetVal>(TRetVal retVal, [CallerMemberName] string methodName = "")
         {
             if (IsEnabled) SocketEventSource.Log.Exit("", methodName, $"{retVal}");
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Exit<TRetVal>([CallerMemberName] string methodName = "")
+        public static void Exit([CallerMemberName] string methodName = "")
         {
             if (IsEnabled) SocketEventSource.Log.Exit("", methodName, $"");
         }
@@ -93,4 +106,7 @@ namespace Tmds.LinuxAsync.Tracing
         private static string IdOf(object? value) =>
             value != null ? $"{value.GetType().Name}#{value.GetHashCode()}" : "(null)";
     }
+    
+    
+    
 }

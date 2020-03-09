@@ -117,7 +117,7 @@ namespace Tmds.LinuxAsync
                 }
 
                 op.IsExecuting = result == AsyncExecutionResult.Executing;
-                Log.Exit(this, result);
+                Log.Return(this, result);
                 return result;
             }
 
@@ -180,7 +180,7 @@ namespace Tmds.LinuxAsync
                     operation.Complete();
                 }
 
-                if (Log.IsEnabled) Log.Exit(this, !finished);
+                if (Log.IsEnabled) Log.Return(this, !finished);
                 return !finished;
             }
 

@@ -4,32 +4,29 @@ using System.Runtime.InteropServices;
 namespace Tmds.LinuxAsync.Tracing
 {
     [EventSource]
-    internal class SocketEventSource : EventSource
+    public class SocketEventSource : EventSource
     {
         public static readonly SocketEventSource Log = new SocketEventSource();
         
-        public class Keywords
+        public static class Keywords
         {
-            public const EventKeywords Generic = (EventKeywords)0x01;
+            public const EventKeywords GenericFlow = (EventKeywords)0x01;
             public const EventKeywords PInvoke = (EventKeywords)0x02;
-            public const EventKeywords Epoll = (EventKeywords)0x04;
-            public const EventKeywords Aio = (EventKeywords)0x08;
-            public const EventKeywords IOUring = (EventKeywords)0x0F;
         }
 
-        [Event(1, Keywords = Keywords.Generic)]
+        [Event(1, Keywords = Keywords.GenericFlow)]
         public void Info(string contextObject, string methodName, string message)
         {
-            WriteEvent(1, message);
+            WriteEvent(1, contextObject, methodName, message);
         }
 
-        [Event(2, Keywords = Keywords.Generic)]
+        [Event(2, Keywords = Keywords.GenericFlow)]
         public void Enter(string contextObject, string methodName, string argsStr)
         {
             WriteEvent(2, contextObject, methodName, argsStr);
         }
-        
-        [Event(3, Keywords = Keywords.Generic)]
+
+        [Event(3, Keywords = Keywords.GenericFlow)]
         public void Exit(string contextObject, string methodName, string retVal)
         {
             WriteEvent(3, contextObject, methodName, retVal);
@@ -46,7 +43,7 @@ namespace Tmds.LinuxAsync.Tracing
         {
             WriteEvent(11, fd, rv);
         }
-        
+
         [Event(12, Keywords = Keywords.PInvoke)]
         public void Send(int fd, int rv)
         {
@@ -58,7 +55,5 @@ namespace Tmds.LinuxAsync.Tracing
         {
             WriteEvent(13, fd, rv);
         }
-
-
     }
 }

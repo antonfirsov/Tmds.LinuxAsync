@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 using Tmds.LinuxAsync;
@@ -13,7 +14,9 @@ namespace web
         public static void Main(string[] args)
         {
             (bool isSuccess, CommandLineOptions options)  = ConsoleLineArgumentsParser.ParseArguments(args);
-
+            using Process currentProcess = Process.GetCurrentProcess();
+            Console.WriteLine($"PID={currentProcess.Id}");
+            
             if (isSuccess)
             {
                 CreateHostBuilder(args, options).Build().Run();

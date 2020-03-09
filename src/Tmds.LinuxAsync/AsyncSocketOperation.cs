@@ -95,7 +95,7 @@ namespace Tmds.LinuxAsync
                     break;
             }
             
-            Log.Exit(this, result);
+            Log.Return(this, result);
 
             return result;
         }
