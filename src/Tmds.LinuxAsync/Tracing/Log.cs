@@ -1,9 +1,10 @@
 using System;
 using System.Runtime.CompilerServices;
+using IoUring;
 
 namespace Tmds.LinuxAsync.Tracing
 {
-    internal static class Log
+    internal static partial class Log
     {
         public static bool IsEnabled => SocketEventSource.Log.IsEnabled();
         
@@ -102,11 +103,8 @@ namespace Tmds.LinuxAsync.Tracing
         {
             if (IsEnabled) SocketEventSource.Log.Recv(fd, rv);
         }
-        
+
         private static string IdOf(object? value) =>
             value != null ? $"{value.GetType().Name}#{value.GetHashCode()}" : "(null)";
     }
-    
-    
-    
 }

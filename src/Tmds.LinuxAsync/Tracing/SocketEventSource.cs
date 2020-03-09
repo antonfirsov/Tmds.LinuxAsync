@@ -4,14 +4,15 @@ using System.Runtime.InteropServices;
 namespace Tmds.LinuxAsync.Tracing
 {
     [EventSource]
-    public class SocketEventSource : EventSource
+    public partial class SocketEventSource : EventSource
     {
         public static readonly SocketEventSource Log = new SocketEventSource();
         
         public static class Keywords
         {
             public const EventKeywords GenericFlow = (EventKeywords)0x01;
-            public const EventKeywords PInvoke = (EventKeywords)0x02;
+            public const EventKeywords Interop = (EventKeywords)0x02;
+            public const EventKeywords URing = (EventKeywords)0x04;
         }
 
         [Event(1, Keywords = Keywords.GenericFlow)]
@@ -32,25 +33,25 @@ namespace Tmds.LinuxAsync.Tracing
             WriteEvent(3, contextObject, methodName, retVal);
         }
 
-        [Event(10, Keywords = Keywords.PInvoke)]
+        [Event(10, Keywords = Keywords.Interop)]
         public void ReadFd(int fd, int rv)
         {
             WriteEvent(10, fd, rv);
         }
 
-        [Event(11, Keywords = Keywords.PInvoke)]
+        [Event(11, Keywords = Keywords.Interop)]
         public void WriteFd(int fd, int rv)
         {
             WriteEvent(11, fd, rv);
         }
 
-        [Event(12, Keywords = Keywords.PInvoke)]
+        [Event(12, Keywords = Keywords.Interop)]
         public void Send(int fd, int rv)
         {
             WriteEvent(12, fd, rv);
         }
 
-        [Event(13, Keywords = Keywords.PInvoke)]
+        [Event(13, Keywords = Keywords.Interop)]
         public void Recv(int fd, int rv)
         {
             WriteEvent(13, fd, rv);

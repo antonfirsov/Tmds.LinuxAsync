@@ -21,8 +21,8 @@ namespace Tmds.LinuxAsync
             public EPollAsyncContext(EPollThread thread, SafeHandle handle)
             {
                 _epoll = thread;
-                _writeQueue = new Queue(thread, "EPoll.WriteQueue");
-                _readQueue = new Queue(thread, "EPoll.ReadQueue");
+                _writeQueue = new Queue(thread, "[EPoll]._writeQueue");
+                _readQueue = new Queue(thread, "[EPoll]._readQueue");
                 bool success = false;
                 handle.DangerousAddRef(ref success);
                 _fd = handle.DangerousGetHandle().ToInt32();

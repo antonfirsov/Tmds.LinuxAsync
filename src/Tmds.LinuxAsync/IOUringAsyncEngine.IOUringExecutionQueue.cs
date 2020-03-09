@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using IoUring;
 using Tmds.Linux;
+using Tmds.LinuxAsync.Tracing;
 using static Tmds.Linux.LibC;
 
 namespace Tmds.LinuxAsync
@@ -156,6 +157,7 @@ namespace Tmds.LinuxAsync
 
             private unsafe bool WriteSubmissions()
             {
+                Log.Enter(this);
                 Ring ring = _ring!;
                 int iovIndex = _iovsUsed;
                 int sqesAvailable = ring.SubmissionEntriesAvailable;
@@ -177,6 +179,7 @@ namespace Tmds.LinuxAsync
                                 *iov = new iovec { iov_base = handle.Pointer, iov_len = op.Memory.Length };
                                 sqesAvailable -= 2;
                                 // Poll first, in case the fd is non-blocking.
+                                Log.Ring_PrepareLinkedReadV(fd, key);
                                 ring.PreparePollAdd(fd, (ushort)POLLIN, key | MaskBit, options: SubmissionOption.Link);
                                 ring.PrepareReadV(fd, iov, 1, userData: key);
                                 break;
@@ -189,6 +192,7 @@ namespace Tmds.LinuxAsync
                                 *iov = new iovec { iov_base = handle.Pointer, iov_len = op.Memory.Length };
                                 sqesAvailable -= 2;
                                 // Poll first, in case the fd is non-blocking.
+                                Log.Ring_PrepareLinkedWriteV(fd, key);
                                 ring.PreparePollAdd(fd, (ushort)POLLOUT, key | MaskBit, options: SubmissionOption.Link);
                                 ring.PrepareWriteV(fd, iov, 1, userData: key);
                                 break;
@@ -196,12 +200,14 @@ namespace Tmds.LinuxAsync
                         case OperationType.PollIn:
                             {
                                 sqesAvailable -= 1;
+                                Log.Ring_PreparePollAdd_PollIn(fd, key);
                                 ring.PreparePollAdd(fd, (ushort)POLLIN, key);
                                 break;
                             }
                         case OperationType.PollOut:
                             {
                                 sqesAvailable -= 1;
+                                Log.Ring_PreparePollAdd_PollOut(fd, key);
                                 ring.PreparePollAdd(fd, (ushort)POLLOUT, key);
                                 break;
                             }
@@ -209,6 +215,7 @@ namespace Tmds.LinuxAsync
                             {
                                 sqesAvailable -= 2;
                                 // Cancel the operation and possibly associated poll operation.
+                                Log.Ring_PrepareCancel(key);
                                 ring.PrepareCancel(opUserData: key | MaskBit, userData: IgnoredData);
                                 ring.PrepareCancel(opUserData: key,           userData: IgnoredData);
                                 // Cancel operations aren't added to the dictionary, we can return it now.
@@ -220,11 +227,13 @@ namespace Tmds.LinuxAsync
                 _iovsUsed = iovIndex;
 
                 bool operationsRemaining = (_newOperations.Count - _newOperationsQueued) > 0;
+                Log.Return(this, operationsRemaining);
                 return operationsRemaining;
             }
 
             public unsafe void SubmitAndWait(bool mayWait)
             {
+                if (Log.IsEnabled) Log.Enter(this, $"{mayWait}");
                 bool operationsRemaining = WriteSubmissions();
 
                 // We can't wait if there are more submissions to be sent,
@@ -232,7 +241,9 @@ namespace Tmds.LinuxAsync
                 bool waitForCompletion = !operationsRemaining && mayWait;
 
                 // io_uring_enter
+                Log.Ring_SubmitAndWait(waitForCompletion);
                 SubmitResult result = _ring!.SubmitAndWait(minComplete: waitForCompletion ? 1U : 0, out _);
+                Log.Ring_SubmitAndWaitResult(result);
 
                 if (result == SubmitResult.SubmittedSuccessfully) // likely case: all sqes were queued
                 {
@@ -251,12 +262,16 @@ namespace Tmds.LinuxAsync
                     // the sqe at submitted + 1?
                     // TODO: detect if we're not making any more progress.
                 }
+
+                Log.Exit(this);
             }
 
             public void ExecuteCompletions()
             {
+                Log.Enter(this);
                 while (_ring!.TryRead(out Completion completion))
                 {
+                    Log.Ring_Completion(completion);
                     ulong key = completion.userData;
                     if (_operations.Remove(key, out Operation? op))
                     {
@@ -279,6 +294,7 @@ namespace Tmds.LinuxAsync
                         Debug.Assert((key & (1UL << 63)) != 0);
                     }
                 }
+                Log.Exit(this);
             }
 
             protected unsafe override void Dispose(bool disposing)

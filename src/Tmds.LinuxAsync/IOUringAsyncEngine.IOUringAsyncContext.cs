@@ -26,8 +26,8 @@ namespace Tmds.LinuxAsync
             public IOUringAsyncContext(IOUringThread thread, SafeHandle handle)
             {
                 _iouring = thread;
-                _writeQueue = new Queue(thread, this, "IOUring.WriteQueue");
-                _readQueue = new Queue(thread, this, "IOUring.ReadQueue");
+                _writeQueue = new Queue(thread, this, "[IOUring]._writeQueue");
+                _readQueue = new Queue(thread, this, "[IOUring]._readQueue");
                 bool success = false;
                 handle.DangerousAddRef(ref success);
                 _fd = handle.DangerousGetHandle().ToInt32();
