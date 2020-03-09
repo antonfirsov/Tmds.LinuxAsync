@@ -10,7 +10,8 @@ namespace Tmds.LinuxAsync
             private readonly EPollThread _thread;
             private int _eventCounter;
 
-            public Queue(EPollThread thread)
+            public Queue(EPollThread thread, string logId)
+                : base(logId)
             {
                 _thread = thread;
             }

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Threading;
+using Tmds.LinuxAsync.Tracing;
 
 namespace Tmds.LinuxAsync
 {
@@ -12,6 +13,7 @@ namespace Tmds.LinuxAsync
 
         public override void Complete()
         {
+            Log.Enter(this);
             Debug.Assert((CompletionFlags & (OperationCompletionFlags.OperationCancelled | OperationCompletionFlags.OperationFinished)) != 0);
 
             bool runContinuationsAsync = Saea.RunContinuationsAsynchronously;
@@ -21,16 +23,21 @@ namespace Tmds.LinuxAsync
             bool completeSync = (CompletionFlags & OperationCompletionFlags.CompletedSync) != 0;
             if (completeSync || !runContinuationsAsync)
             {
+                Log.Info(this, "Completing synchronously");
                 ((IThreadPoolWorkItem)this).Execute();
             }
             else
             {
+                Log.Info(this, "Posting to ThreadPool");
                 ThreadPool.UnsafeQueueUserWorkItem(this, preferLocal: false);
             }
+            
+            Log.Exit(this);
         }
 
         void IThreadPoolWorkItem.Execute()
         {
+            Log.Enter(this);
             // Capture state.
             OperationCompletionFlags completionStatus = CompletionFlags;
 
@@ -40,6 +47,7 @@ namespace Tmds.LinuxAsync
 
             // Complete.
             Saea.Complete(completionStatus);
+            Log.Exit(this);
         }
     }
 }

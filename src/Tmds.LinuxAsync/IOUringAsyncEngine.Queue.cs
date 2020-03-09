@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Threading;
+using Tmds.LinuxAsync.Tracing;
 using static Tmds.Linux.LibC;
 
 namespace Tmds.LinuxAsync
@@ -11,7 +12,8 @@ namespace Tmds.LinuxAsync
             private readonly IOUringThread _thread;
             private readonly IOUringAsyncContext _context;
 
-            public Queue(IOUringThread thread, IOUringAsyncContext context)
+            public Queue(IOUringThread thread, IOUringAsyncContext context, string logId)
+                : base(logId)
             {
                 _thread = thread;
                 _context = context;
@@ -50,6 +52,7 @@ namespace Tmds.LinuxAsync
 
             public void ExecuteQueued(AsyncOperationResult asyncResult)
             {
+                Log.Enter(this);
                 AsyncOperation? completedTail = null;
 
                 lock (Gate)
@@ -95,10 +98,14 @@ namespace Tmds.LinuxAsync
                 {
                     completedOp.Complete();
                 }
+                
+                Log.Exit(this);
             }
 
             private AsyncExecutionResult TryExecuteOperation(AsyncOperation op, AsyncOperationResult asyncResult, bool isCancellationRequested = false)
             {
+                if (Log.IsEnabled) Log.Enter(this, $"op:{op.LogId},isCancellationRequested:{isCancellationRequested}");
+
                 AsyncExecutionResult result = op.TryExecute(triggeredByPoll: false, isCancellationRequested, _thread.ExecutionQueue,
                                                     (AsyncOperationResult aResult, object? state, int data)
                                                         => ((Queue)state!).ExecuteQueued(aResult)
@@ -110,11 +117,14 @@ namespace Tmds.LinuxAsync
                 }
 
                 op.IsExecuting = result == AsyncExecutionResult.Executing;
+                Log.Exit(this, result);
                 return result;
             }
 
             public bool ExecuteAsync(AsyncOperation operation, bool preferSync)
             {
+                if (Log.IsEnabled) Log.Enter(this, $"({operation}, {preferSync})");
+
                 bool finished = false;
                 bool batchOnIOUringThread = _thread.BatchOnIOUringThread // Avoid overhead of _thread.IsCurrentThread
                     && _thread.IsCurrentThread;
@@ -122,6 +132,7 @@ namespace Tmds.LinuxAsync
                 // Try executing without a lock.
                 if (!batchOnIOUringThread && preferSync && Volatile.Read(ref _tail) == null)
                 {
+                    Log.Info(this, "TryExecuteSync without a lock");
                     finished = operation.TryExecuteSync();
                 }
 
@@ -151,12 +162,14 @@ namespace Tmds.LinuxAsync
 
                         if (!finished)
                         {
+                            Log.Info("QueueAdd");
                             QueueAdd(ref _tail, operation);
                         }
                     }
                     if (postToIOUringThread)
                     {
                         // TODO: an alternative could be to add the operation to the executionqueue here directly.
+                        Log.Info(this, "Post on uring thread");
                         _thread.Post((object? s) => ((Queue)s!).ExecuteQueued(AsyncOperationResult.NoResult), this);
                     }
                 }
@@ -167,6 +180,7 @@ namespace Tmds.LinuxAsync
                     operation.Complete();
                 }
 
+                if (Log.IsEnabled) Log.Exit(this, !finished);
                 return !finished;
             }
 

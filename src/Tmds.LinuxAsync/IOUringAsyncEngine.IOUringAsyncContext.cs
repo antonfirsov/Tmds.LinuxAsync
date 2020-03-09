@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Threading;
+using Tmds.LinuxAsync.Tracing;
 using static Tmds.Linux.LibC;
 
 namespace Tmds.LinuxAsync
@@ -25,8 +26,8 @@ namespace Tmds.LinuxAsync
             public IOUringAsyncContext(IOUringThread thread, SafeHandle handle)
             {
                 _iouring = thread;
-                _writeQueue = new Queue(thread, this);
-                _readQueue = new Queue(thread, this);
+                _writeQueue = new Queue(thread, this, "IOUring.WriteQueue");
+                _readQueue = new Queue(thread, this, "IOUring.ReadQueue");
                 bool success = false;
                 handle.DangerousAddRef(ref success);
                 _fd = handle.DangerousGetHandle().ToInt32();
@@ -54,6 +55,7 @@ namespace Tmds.LinuxAsync
 
             public override bool ExecuteAsync(AsyncOperation operation, bool preferSync)
             {
+                if (Log.IsEnabled) Log.Enter(this, $"operation:{operation.LogId},preferSync:{preferSync}");
                 EnsureNonBlocking();
 
                 try
@@ -73,7 +75,8 @@ namespace Tmds.LinuxAsync
                 {
                     operation.Next = null;
 
-                    CancellationRequestResult result = operation.RequestCancellationAsync(OperationCompletionFlags.CompletedCanceledSync);
+                    CancellationRequestResult result =
+                        operation.RequestCancellationAsync(OperationCompletionFlags.CompletedCanceledSync);
                     Debug.Assert(result == CancellationRequestResult.Cancelled);
                     if (result == CancellationRequestResult.Cancelled)
                     {
@@ -81,6 +84,10 @@ namespace Tmds.LinuxAsync
                     }
 
                     throw;
+                }
+                finally
+                {
+                    Log.Exit(this);
                 }
             }
 

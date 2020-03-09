@@ -2,6 +2,7 @@ using System;
 using System.Buffers;
 using System.Runtime.InteropServices;
 using Tmds.Linux;
+using Tmds.LinuxAsync.Tracing;
 using static Tmds.Linux.LibC;
 
 namespace Tmds.LinuxAsync
@@ -20,7 +21,9 @@ namespace Tmds.LinuxAsync
                 {
                     do
                     {
-                        rv = (int)write(handle.DangerousGetHandle().ToInt32(), ptr, span.Length);
+                        int fd = handle.DangerousGetHandle().ToInt32();
+                        rv = (int)write(fd, ptr, span.Length);
+                        Log.WriteFd(fd, rv);
                     } while (rv == -1 && errno == EINTR);
                 }
 
@@ -45,7 +48,9 @@ namespace Tmds.LinuxAsync
                 {
                     do
                     {
-                        rv = (int)read(handle.DangerousGetHandle().ToInt32(), ptr, span.Length);
+                        int fd = handle.DangerousGetHandle().ToInt32();
+                        rv = (int)read(fd, ptr, span.Length);
+                        Log.ReadFd(fd, rv);
                     } while (rv == -1 && errno == EINTR);
                 }
 

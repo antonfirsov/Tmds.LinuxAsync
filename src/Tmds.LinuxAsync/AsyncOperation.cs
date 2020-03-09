@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using Tmds.LinuxAsync.Tracing;
 
 namespace Tmds.LinuxAsync
 {
@@ -15,13 +16,15 @@ namespace Tmds.LinuxAsync
     // Derived classes:
     // * Provide an implement for trying to execute the operation without blocking.
     // * Handle signalling completion to the user.
-    abstract class AsyncOperation
+    abstract class AsyncOperation : ICustomLogId
     {
         sealed class AsyncOperationSentinel : AsyncOperation
         {
             public override bool IsReadNotWrite
                 => throw new System.InvalidOperationException();
             public override void Complete()
+                => throw new System.InvalidOperationException();
+            public override string LogId 
                 => throw new System.InvalidOperationException();
             public override AsyncExecutionResult TryExecute(bool triggeredByPoll, bool cancellationRequested, AsyncExecutionQueue? executionQueue, AsyncExecutionCallback? callback, object? state, int data, AsyncOperationResult result)
                 => throw new System.InvalidOperationException();
@@ -38,8 +41,6 @@ namespace Tmds.LinuxAsync
 
         // Can be used to create a queue of AsyncOperations.
         public AsyncOperation? Next;
-
-
 
         // Track state of the AsyncOperation while it is executing to support cancellation.
         // Thread safety is the caller's responsibility.
@@ -95,5 +96,7 @@ namespace Tmds.LinuxAsync
                 context.TryCancelAndComplete(this, completionFlags);
             }
         }
+
+        public abstract string LogId { get; }
     }
 }

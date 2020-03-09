@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using Tmds.LinuxAsync.Tracing;
 using static Tmds.Linux.LibC;
 
 namespace Tmds.LinuxAsync
@@ -30,6 +31,8 @@ namespace Tmds.LinuxAsync
 
         public override bool IsReadNotWrite
             => IsOperationReadNotWrite(Saea.CurrentOperation);
+
+        public override string LogId => $"{GetType().Name}+{_saea?.CurrentOperation}#{GetHashCode()}";
 
         public static bool IsOperationReadNotWrite(SocketAsyncOperation operation)
         {
@@ -60,6 +63,11 @@ namespace Tmds.LinuxAsync
 
         public override AsyncExecutionResult TryExecute(bool triggeredByPoll, bool isCancellationRequested, AsyncExecutionQueue? executionQueue, AsyncExecutionCallback? callback, object? state, int data, AsyncOperationResult asyncResult)
         {
+            if (Log.IsEnabled)
+            {
+                Log.Enter(this, $"triggeredByPoll:{triggeredByPoll},isCancellationRequested:{isCancellationRequested}");
+            }
+            
             AsyncExecutionResult result;
 
             SocketAsyncOperation currentOperation = Saea.CurrentOperation;
@@ -86,6 +94,8 @@ namespace Tmds.LinuxAsync
                     ThrowHelper.ThrowIndexOutOfRange(currentOperation);
                     break;
             }
+            
+            Log.Exit(this, result);
 
             return result;
         }

@@ -1,12 +1,20 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Tmds.LinuxAsync.Tracing;
 
 namespace Tmds.LinuxAsync
 {
-    class AsyncOperationQueueBase
+    class AsyncOperationQueueBase : ICustomLogId
     {
         protected object Gate => this;
         protected AsyncOperation? _tail;
+
+        public AsyncOperationQueueBase(string logId)
+        {
+            LogId = logId;
+        }
+
+        public string LogId { get; }
 
         protected static bool TryQueueTakeFirst(ref AsyncOperation? tail, [NotNullWhen(true)]out AsyncOperation? first)
         {

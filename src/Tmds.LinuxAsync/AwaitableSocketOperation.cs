@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks.Sources;
+using Tmds.LinuxAsync.Tracing;
 
 namespace Tmds.LinuxAsync
 {
@@ -104,6 +105,7 @@ namespace Tmds.LinuxAsync
 
         public override void Complete()
         {
+            Log.Enter(this);
             Debug.Assert((CompletionFlags & (OperationCompletionFlags.OperationCancelled | OperationCompletionFlags.OperationFinished)) != 0);
 
             ResetOperationState();
@@ -125,6 +127,7 @@ namespace Tmds.LinuxAsync
                 // After that a direct call is made to get the result.
                 mre?.Set();
             }
+            Log.Exit(this);
         }
 
         private void ResetAndReturnThis()

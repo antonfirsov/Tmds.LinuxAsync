@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Tmds.Linux;
+using Tmds.LinuxAsync.Tracing;
 using static Tmds.Linux.LibC;
 
 namespace Tmds.LinuxAsync
@@ -23,6 +24,7 @@ namespace Tmds.LinuxAsync
             do
             {
                 rv = (int)recv(fd, pinned.Pointer, memory.Length, 0);
+                Log.Recv(fd, rv);
             } while (rv == -1 && errno == EINTR);
 
             if (rv < 0)
@@ -50,6 +52,7 @@ namespace Tmds.LinuxAsync
             do
             {
                 rv = (int)send(fd, pinned.Pointer, memory.Length, 0);
+                Log.Send(fd, rv);
             } while (rv == -1 && errno == EINTR);
 
             if (rv < 0)
