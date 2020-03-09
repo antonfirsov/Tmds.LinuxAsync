@@ -275,6 +275,8 @@ namespace Tmds.LinuxAsync
                     ulong key = completion.userData;
                     if (_operations.Remove(key, out Operation? op))
                     {
+                        if (Log.IsEnabled) Log.Info(this, $"Completed {op.OperationType} [{key}]");
+
                         // Clean up
                         op.MemoryHandle.Dispose();
 
