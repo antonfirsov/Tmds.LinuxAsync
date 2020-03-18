@@ -16,7 +16,7 @@ namespace Tmds.LinuxAsync
             private const ulong MaskBit = 1UL << 63;
             private const ulong IgnoredData = ulong.MaxValue | MaskBit;
             private const int MemoryAlignment = 8;
-            private const int SubmissionQueueRequestedLength = 512; // TODO
+            private const int SubmissionQueueRequestedLength = 1024; // TODO
             // private const int CompletionQueueLength = CompletionQueueLength; // TODO
             Ring? _ring;
 
@@ -56,7 +56,7 @@ namespace Tmds.LinuxAsync
             private unsafe iovec* IoVectorTable => (iovec*)Align(_ioVectorTableMemory);
 
             public unsafe IOUringExecutionQueue() :
-                base(supportsPolling: true)
+                base(supportsPolling: true, isThreadSafe: false)
             {
                 _operationPool = new Stack<Operation>();
                 _operations = new Dictionary<ulong, Operation>();
