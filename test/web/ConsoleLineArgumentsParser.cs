@@ -56,7 +56,6 @@ namespace web
             AppendValOf(bld, 's', DeferSends);
             AppendValOf(bld, 'r', DeferReceives);
             AppendValOf(bld, 'w', DontAllocateMemoryForIdleConnections);
-            AppendValOf(bld, 'p', CoalesceWrites);
             AppendValOf(bld, 'i', ApplicationCodeIsNonBlocking);
             return bld.ToString();
         }
