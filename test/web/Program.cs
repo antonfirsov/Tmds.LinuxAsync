@@ -30,9 +30,6 @@ namespace web
             AsyncEngine.SocketEngine = CreateAsyncEngine(commandLineOptions);
 
             return Host.CreateDefaultBuilder(args)
-#if RELEASE
-                .ConfigureLogging(loggingBuilder => loggingBuilder.ClearProviders())
-#endif
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseStartup<Startup>();
