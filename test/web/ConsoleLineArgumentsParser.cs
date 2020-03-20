@@ -1,9 +1,8 @@
-﻿using CommandLine;
+﻿﻿using CommandLine;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using Tmds.LinuxAsync.Transport;
-using System.Text;
 
 namespace web
 {
@@ -46,27 +45,6 @@ namespace web
 
         [Option('i', "inline-app", Required = false, Default = false, HelpText = "Application code is non blocking")]
         public bool? ApplicationCodeIsNonBlocking { get; set; }
-
-        public override string ToString()
-        {
-            StringBuilder bld = new StringBuilder();
-            bld.Append($"-e {SocketEngine} -t {ThreadCount}");
-            AppendValOf(bld, 'a', UseAio);
-            AppendValOf(bld, 'c', DispatchContinuations);
-            AppendValOf(bld, 's', DeferSends);
-            AppendValOf(bld, 'r', DeferReceives);
-            AppendValOf(bld, 'w', DontAllocateMemoryForIdleConnections);
-            AppendValOf(bld, 'i', ApplicationCodeIsNonBlocking);
-            return bld.ToString();
-        }
-
-        private static void AppendValOf(StringBuilder bld, char opName, bool? b)
-        {
-            if (b.HasValue)
-            {
-                bld.Append($" -{opName} {b.Value}");
-            }
-        }
     }
 
     public static class ConsoleLineArgumentsParser
