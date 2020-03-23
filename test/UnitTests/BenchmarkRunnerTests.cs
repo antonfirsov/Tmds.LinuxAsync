@@ -77,6 +77,25 @@ namespace BenchmarkRunner
             Assert.Contains("--arg \"-e=iouring\" --arg \"-r=true\" --arg \"-t=4\"", lines[7]);
         }
 
+        [Theory]
+        [InlineData("RequestsPerSecond:           341,312", "RequestsPerSecond:", 341312)]
+        [InlineData("Max CPU (%):                 86", "Max CPU (%):", 86)]
+        public void Utilities_ParseIfInt(string str, string match, int expected)
+        {
+            int result = 0;
+            Utilities.ParseIfInt(str, match, ref result);
+            Assert.Equal(expected, result);
+        }
+        
+        [Theory]
+        [InlineData("Avg. Latency (ms):           0.83", "Avg. Latency (ms):", 0.83)]
+        public void Utilities_ParseIfFloat(string str, string match, float expected)
+        {
+            float result = 0;
+            Utilities.ParseIfFloat(str, match, ref result);
+            Assert.Equal(expected, result);
+        }
+
         private static void CheckRow(IReadOnlyList<object> data, int idx, params object[] expected)
         {
             Assert.Equal(expected, data[idx]);
