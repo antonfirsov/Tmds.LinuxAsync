@@ -17,9 +17,6 @@ namespace BenchmarkRunner
         [Option("path", Required = false, Default = "/json", HelpText = "Path for benchmark")]
         public string Path { get; set; }
         
-        [Option('p', "parameters", Required = true, HelpText = "The parameter set string")]
-        public string Parameters { get; set; }
-     
         private static Parser CreateParser()
             => new Parser(settings =>
             {

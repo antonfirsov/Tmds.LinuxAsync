@@ -1,6 +1,6 @@
 ﻿#nullable enable
 using System;
-using System.Linq;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace BenchmarkRunner
@@ -9,7 +9,21 @@ namespace BenchmarkRunner
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            Options options = Options.Parse(args);
+            BenchmarkParameterSet parameterSet = BenchmarkParameterSet.Parse(args);
+
+            Console.WriteLine("Benchmarking with parameters:");
+            Console.WriteLine(parameterSet);
+
+            var processStartInfo = new ProcessStartInfo()
+            {
+                FileName = "dotnet",
+                //Arguments = $"{commandPrefix} {commandSuffix}",
+                WorkingDirectory = options.BenchmarksDriverPath,
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
         }
     }
 }
