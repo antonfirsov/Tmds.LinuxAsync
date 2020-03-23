@@ -14,6 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\BenchmarkRunner\BenchmarkRunner.csproj" />
     <ProjectReference Include="..\web\web.csproj" />
   </ItemGroup>
 
