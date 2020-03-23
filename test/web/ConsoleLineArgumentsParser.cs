@@ -1,4 +1,4 @@
-﻿﻿using CommandLine;
+﻿using CommandLine;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,7 +12,7 @@ namespace web
         IOUring,
         IOUringTransport,
         LinuxTransport,
-        DefaultSockets
+        DefaultTransport
     }
 
     public class CommandLineOptions
@@ -20,7 +20,7 @@ namespace web
         // the booleans MUST be nullable, otherwise --arg false does not work...
         // see https://github.com/commandlineparser/commandline/issues/290 for more details
 
-        [Option('e', "engine", Required = false, Default = SocketEngineType.IOUring, HelpText = "EPoll/IOUring/IOUringTransport/LinuxTransport/DefaultSockets")]
+        [Option('e', "engine", Required = false, Default = SocketEngineType.IOUring, HelpText = "EPoll/IOUring/IOUringTransport/LinuxTransport/DefaultTransport")]
         public SocketEngineType SocketEngine { get; set; }
 
         [Option('t', "thread-count", Required = false, Default = 1, HelpText = "Thread Count, default value is 1")]
@@ -41,8 +41,8 @@ namespace web
         [Option('w', "wait-for-ready", Required = false, Default = true, HelpText = "Don't allocate memory for idle connections")]
         public bool? DontAllocateMemoryForIdleConnections { get; set; }
 
-        [Option('o', "output-writer-scheduler", Required = false, Default = OutputWriterScheduler.IOQueue, HelpText = "IOQueue/Inline/IOThread")]
-        public OutputWriterScheduler OutputWriterScheduler { get; set; }
+        [Option('o', "output-writer-scheduler", Required = false, Default = OutputScheduler.IOQueue, HelpText = "IOQueue/Inline/IOThread/ThreadPool")]
+        public OutputScheduler OutputScheduler { get; set; }
 
         [Option('i', "inline-app", Required = false, Default = false, HelpText = "Application code is non blocking")]
         public bool? ApplicationCodeIsNonBlocking { get; set; }

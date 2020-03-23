@@ -28,6 +28,9 @@ namespace web
             AsyncEngine.SocketEngine = CreateAsyncEngine(commandLineOptions);
 
             return Host.CreateDefaultBuilder(args)
+#if RELEASE
+                .ConfigureLogging(loggingBuilder => loggingBuilder.ClearProviders())
+#endif
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseStartup<Startup>();
@@ -52,7 +55,7 @@ namespace web
                                     PipeScheduler.Inline : PipeScheduler.ThreadPool;
                             });
                             break;
-                        case SocketEngineType.DefaultSockets:
+                        case SocketEngineType.DefaultTransport:
                             webBuilder.UseSockets(options =>
                             {
                                 options.IOQueueCount = commandLineOptions.ThreadCount;
@@ -65,7 +68,7 @@ namespace web
                                     options.DeferSends = commandLineOptions.DeferSends.Value;
                                     options.DeferReceives = commandLineOptions.DeferReceives.Value;
                                     options.DontAllocateMemoryForIdleConnections = commandLineOptions.DontAllocateMemoryForIdleConnections.Value;
-                                    options.OutputWriterScheduler = commandLineOptions.OutputWriterScheduler;
+                                    options.OutputScheduler = commandLineOptions.OutputScheduler;
                                     options.ApplicationCodeIsNonBlocking = commandLineOptions.ApplicationCodeIsNonBlocking.Value;
                                 }
                             );
@@ -77,7 +80,7 @@ namespace web
         private static AsyncEngine CreateAsyncEngine(CommandLineOptions commandLineOptions)
         {
             bool batchOnIOThread = !commandLineOptions.DispatchContinuations.Value ||
-                                          commandLineOptions.OutputWriterScheduler == OutputWriterScheduler.IOThread;
+                                          commandLineOptions.OutputScheduler == OutputScheduler.IOThread;
             switch (commandLineOptions.SocketEngine)
             {
                 case SocketEngineType.EPoll:
@@ -89,7 +92,7 @@ namespace web
                         batchOnIOThread);
                 case SocketEngineType.IOUringTransport:
                 case SocketEngineType.LinuxTransport: 
-                case SocketEngineType.DefaultSockets:
+                case SocketEngineType.DefaultTransport:
                     // Create EPollAsyncEngine with threadCount of zero.
                     return new EPollAsyncEngine(threadCount: 0,
                         useLinuxAio: false,
