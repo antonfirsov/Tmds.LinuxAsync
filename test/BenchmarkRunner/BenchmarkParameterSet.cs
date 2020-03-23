@@ -17,6 +17,8 @@ namespace BenchmarkRunner
 
         public IEnumerable<char> Names => _parameters.Select(p => p.Name);
 
+        public IEnumerable<char> NonTrivialNames => _parameters.Where(p => p.IsVariable).Select(p => p.Name);
+
         public BenchmarkParameter this[char name] => _parameters.First(p => p.Name == name);
         
         public IEnumerator<BenchmarkParameter> GetEnumerator() => _parameters.GetEnumerator();
@@ -75,19 +77,30 @@ namespace BenchmarkRunner
             }
         }
 
-        public string GetBenchmarkRunnerParameterStringForLine(IReadOnlyList<object> values)
+        public string GetBenchmarkRunnerParameterStringForLine(IReadOnlyList<object> line)
         {
             StringBuilder bld = new StringBuilder();
             
             for (int i = 0; i < _parameters.Count; i++)
             {
                 char name = _parameters[i].Name;
-                object value = values[i];
+                object value = line[i];
                 if (i > 0) bld.Append(' ');
                 bld.Append($"--arg \"-{name}={value}\"");
             }
 
             return bld.ToString();
+        }
+
+        public IEnumerable<object> GetVariableValues(IReadOnlyList<object> line)
+        {
+            for (int i = 0; i < _parameters.Count; i++)
+            {
+                if (_parameters[i].IsVariable)
+                {
+                    yield return line[i];
+                }
+            }
         }
 
         struct CartesianEnumerator : IEnumerator<IReadOnlyList<object>>

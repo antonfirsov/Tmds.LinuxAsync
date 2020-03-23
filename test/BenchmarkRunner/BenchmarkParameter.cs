@@ -7,6 +7,8 @@ namespace BenchmarkRunner
     {
         public char Name { get;  }
         public object[] Values { get;  }
+
+        public bool IsVariable => Values.Length > 1;
         
         public BenchmarkParameter(char name, object[] values)
         {

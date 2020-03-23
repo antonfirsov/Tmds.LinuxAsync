@@ -46,7 +46,7 @@ namespace BenchmarkRunner
             Console.WriteLine($"Saving output to {csvFile}");
 
             using var csvWriter = new CsvWriter(csvFile);
-            csvWriter.AppendRange(parameterSet.Names);
+            csvWriter.AppendRange(parameterSet.NonTrivialNames);
             csvWriter.Append("RPS");
             csvWriter.Append("CPU");
             csvWriter.Append("latency");
@@ -54,7 +54,7 @@ namespace BenchmarkRunner
 
             foreach (IReadOnlyList<object> paramLine in parameterSet.CartesianProduct())
             {
-                csvWriter.AppendRange(paramLine);
+                csvWriter.AppendRange(parameterSet.GetVariableValues(paramLine));
                 string commandSuffix = parameterSet.GetBenchmarkRunnerParameterStringForLine(paramLine);
 
                 var startInfo = new ProcessStartInfo()
