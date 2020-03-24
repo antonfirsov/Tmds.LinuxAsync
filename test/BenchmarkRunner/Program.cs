@@ -38,10 +38,10 @@ namespace BenchmarkRunner
             Console.WriteLine("Benchmarking with parameters:");
             Console.WriteLine(parameterSet);
             
-            string commandPrefix = $"run --no-build -c Release -- --display-output --server \"{options.Server}\" --client \"{options.Client}\" --repository {options.Repository} --branch {options.Branch} --project-file \"{options.ProjectFile}\" --path \"{options.Path}\" --connections {options.Connections} --display-output";
-
-            Console.WriteLine(commandPrefix);
-
+            string commandPrefix = $"run --no-build -c Release -- --display-output --server \"{options.Server}\" --client \"{options.Client}\" " +
+                                   $"--repository {options.Repository} --branch {options.Branch} --project-file \"{options.ProjectFile}\" " +
+                                   $"--warmup {options.Warmup} --duration {options.Duration} --path \"{options.Path}\" --connections {options.Connections} --display-output";
+            
             string csvFile = $"{options.OutCsv}_{DateTime.Now:MM-dd-yyyy__HH-mm-ss}.csv";
             Console.WriteLine($"Saving output to {csvFile}");
 

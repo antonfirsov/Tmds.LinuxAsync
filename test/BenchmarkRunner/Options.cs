@@ -29,6 +29,12 @@ namespace BenchmarkRunner
         [Option( "connections", Required = false, Default = 256)]
         public int Connections { get; set; }
         
+        [Option( "warmup", Required = false, Default = 15)]
+        public int Warmup { get; set; }
+        
+        [Option( "duration", Required = false, Default = 15)]
+        public int Duration { get; set; }
+        
         [Option("path", Required = false, Default = "/json", HelpText = "Path for benchmark")]
         public string Path { get; set; }
         
