@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 
@@ -24,7 +25,9 @@ namespace BenchmarkRunner
         {
             for (int i = 0; i < _currentLine.Count; i++)
             {
-                _streamWriter.Write(_currentLine[i]);
+                object obj = _currentLine[i];
+                _streamWriter.Write($"{obj}");
+
                 if (i < _currentLine.Count - 1) _streamWriter.Write(", ");
             }
             _streamWriter.WriteLine();

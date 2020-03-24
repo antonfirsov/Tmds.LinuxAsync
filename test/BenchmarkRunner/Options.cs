@@ -45,7 +45,7 @@ namespace BenchmarkRunner
                 settings.CaseSensitive = false;
                 settings.EnableDashDash = true;
                 settings.HelpWriter = Console.Out;
-                settings.IgnoreUnknownArguments = true; // for args that we pass to Host.CreateDefaultBuilder()
+                settings.IgnoreUnknownArguments = true;
             });
 
         public static Options Parse(string[] args)
