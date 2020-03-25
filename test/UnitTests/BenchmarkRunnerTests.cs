@@ -25,23 +25,33 @@ namespace BenchmarkRunner
         [Fact]
         public void BenchmarkParameterSet_Parse()
         {
-            var set = BenchmarkParameterSet.Parse("-e=epoll,iouring -t=3..6 r=false x=0..1 --server http://lololol", "");
+            var set = BenchmarkParameterSet.Parse("-e=epoll,iouring -t=3..6 r=false x=0..1 --server http://lololol", "COMPlus_Rofl=5");
 
-            BenchmarkParameter e = set['e'];
-            BenchmarkParameter t = set['t'];
-            BenchmarkParameter r = set['r'];
-            BenchmarkParameter x = set['x'];
+            BenchmarkParameter e = set["e"];
+            BenchmarkParameter t = set["t"];
+            BenchmarkParameter r = set["r"];
+            BenchmarkParameter x = set["x"];
+            BenchmarkParameter rofl = set["COMPlus_Rofl"];
             
-            Assert.Equal(4, set.Count);
-            Assert.Equal(new char[] { 'e', 't', 'r', 'x'}, set.Names);
-            Assert.Equal('e', e.Name);
+            Assert.Equal(5, set.Count);
+            Assert.Equal(new[] { "COMPlus_Rofl", "e", "t", "r", "x"}, set.Names);
+            
+            Assert.Equal(BenchmarkParameterType.Argument, e.Type);
+            Assert.Equal("e", e.Name);
             Assert.Equal(new object[]{ "epoll", "iouring"}, e.Values);
-            Assert.Equal('t', t.Name);
+            
+            Assert.Equal(BenchmarkParameterType.Argument, t.Type);
+            Assert.Equal("t", t.Name);
             Assert.Equal(new object[] { 3, 4, 5, 6}, t.Values);
-            Assert.Equal('r', r.Name);
+            
+            Assert.Equal("r", r.Name);
             Assert.Equal(new object[] { "false"}, r.Values);
-            Assert.Equal('x', x.Name);
+            Assert.Equal("x", x.Name);
             Assert.Equal(new object[] { 0, 1}, x.Values);
+            
+            Assert.Equal(BenchmarkParameterType.EnvironmentVariable, rofl.Type);
+            Assert.Equal("COMPlus_Rofl", rofl.Name);
+            Assert.Equal(new object[] { "5" }, rofl.Values);
         }
 
         [Fact]
@@ -73,7 +83,7 @@ namespace BenchmarkRunner
         {
             var set = BenchmarkParameterSet.Parse("-e=epoll,iouring r=false,true -t=3..4", "");
 
-            string[] lines = set.CartesianProduct().Select(l => set.GetBenchmarkRunnerParameterStringForLine(l)).ToArray();
+            string[] lines = set.CartesianProduct().Select(l => l.GetBenchmarkRunnerParameterString()).ToArray();
             
             Assert.Contains("--arg \"-e=epoll\" --arg \"-r=false\" --arg \"-t=3\"", lines[0]);
             Assert.Contains("--arg \"-e=iouring\" --arg \"-r=true\" --arg \"-t=4\"", lines[7]);

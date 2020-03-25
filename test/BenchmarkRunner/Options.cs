@@ -41,6 +41,9 @@ namespace BenchmarkRunner
         [Option("path", Required = false, Default = "/json", HelpText = "Path for benchmark")]
         public string Path { get; set; }
         
+        [Option("kestrelThreadCount", Required = false, Default = 0)]
+        public int KestrelThreadCount { get; set; }
+        
         [Option('p', "parameters", Required = true, HelpText = "Whitespace separated list of parameter definitions. Eg. \"e=epoll,iouring c=true,false t=4..8\"")]
         public string Parameters { get; set; }
         

@@ -15,11 +15,11 @@ namespace BenchmarkRunner
             _parameters = parameters;
         }
 
-        public IEnumerable<char> Names => _parameters.Select(p => p.Name);
+        public IEnumerable<string> Names => _parameters.Select(p => p.Name);
 
-        public IEnumerable<char> VariableNames => _parameters.Where(p => p.IsVariable).Select(p => p.Name);
+        public IEnumerable<string> VariableNames => _parameters.Where(p => p.IsVariable).Select(p => p.Name);
 
-        public BenchmarkParameter this[char name] => _parameters.First(p => p.Name == name);
+        public BenchmarkParameter this[string name] => _parameters.First(p => p.Name == name);
         
         public IEnumerator<BenchmarkParameter> GetEnumerator() => _parameters.GetEnumerator();
 
@@ -27,10 +27,16 @@ namespace BenchmarkRunner
 
         public static BenchmarkParameterSet Parse(string parameters, string environmentVariables)
         {
-            return Parse(parameters.Split(' '));
+            string[] allParameters = parameters.Split(' ');
+            string[] allVariables = environmentVariables.Split(' ');
+
+            var stuff =   Parse(allVariables, BenchmarkParameterType.EnvironmentVariable)
+                .Concat(Parse(allParameters, BenchmarkParameterType.Argument))
+                .ToArray();
+            return new BenchmarkParameterSet(stuff);
         }
         
-        private static BenchmarkParameterSet Parse(string[] args)
+        private static IEnumerable<BenchmarkParameter> Parse(string[] args, BenchmarkParameterType type)
         {
             List<BenchmarkParameter> result = new List<BenchmarkParameter>();
             
@@ -58,10 +64,10 @@ namespace BenchmarkRunner
                     values = vals.Split(',').Cast<object>().ToArray();
                 }
 
-                result.Add(new BenchmarkParameter(name[0], values));
+                result.Add(new BenchmarkParameter(name, values, type));
             }
-            
-            return new BenchmarkParameterSet(result);
+
+            return result;
         }
 
         public int Count => _parameters.Count;
@@ -82,19 +88,7 @@ namespace BenchmarkRunner
             }
         }
 
-        public string GetBenchmarkRunnerParameterStringForLine(IReadOnlyList<BenchmarkParameterAssignment> line)
-        {
-            StringBuilder bld = new StringBuilder();
-            
-            for (int i = 0; i < line.Count; i++)
-            {
-                BenchmarkParameterAssignment p = line[i];
-                if (i > 0) bld.Append(' ');
-                bld.Append(p.GetBenchmarkRunnerArgString());
-            }
-
-            return bld.ToString();
-        }
+       
 
         struct CartesianEnumerator : IEnumerator<IReadOnlyList<BenchmarkParameterAssignment>>
         {

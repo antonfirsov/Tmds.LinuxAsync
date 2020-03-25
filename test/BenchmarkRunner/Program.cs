@@ -21,6 +21,11 @@ namespace BenchmarkRunner
             string commandPrefix = $"run --no-build -c Release -- --display-output --server \"{options.Server}\" --client \"{options.Client}\" " +
                                    $"--repository {options.Repository} --branch {options.Branch} --project-file \"{options.ProjectFile}\" " +
                                    $"--warmup {options.Warmup} --duration {options.Duration} --path \"{options.Path}\" --connections {options.Connections} --display-output";
+
+            if (options.KestrelThreadCount > 0)
+            {
+                commandPrefix += $" --kestrelThreadCount {options.KestrelThreadCount}";
+            }
             
             string csvFile = $"{options.OutCsv}_{DateTime.Now:MM-dd-yyyy__HH-mm-ss}.csv";
             Console.WriteLine($"Saving output to {csvFile}");
@@ -37,17 +42,12 @@ namespace BenchmarkRunner
 
             foreach (IReadOnlyList<BenchmarkParameterAssignment> paramLine in parameterSet.CartesianProduct())
             {
-                if (includeConstants)
-                {
-                    csvWriter.AppendRange(paramLine);
-                }
-                else
-                {
-                    var variables = paramLine.Where(a => a.IsVariable);
-                    csvWriter.AppendRange(variables);
-                }
-                
-                string commandSuffix = parameterSet.GetBenchmarkRunnerParameterStringForLine(paramLine);
+                IEnumerable<BenchmarkParameterAssignment> parameters = includeConstants
+                    ? paramLine
+                    : paramLine.Where(a => a.IsVariable);
+                csvWriter.AppendRange(parameters.Select(p => p.Value));
+
+                string commandSuffix = paramLine.GetBenchmarkRunnerParameterString();
 
                 var startInfo = new ProcessStartInfo()
                 {

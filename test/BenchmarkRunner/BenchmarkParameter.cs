@@ -3,17 +3,26 @@ using System.Text;
 
 namespace BenchmarkRunner
 {
+    public enum BenchmarkParameterType
+    {
+        Argument,
+        EnvironmentVariable
+    }
+
     public class BenchmarkParameter
     {
-        public char Name { get;  }
+        public string Name { get;  }
         public object[] Values { get;  }
 
         public bool IsVariable => Values.Length > 1;
         
-        public BenchmarkParameter(char name, object[] values)
+        public BenchmarkParameterType Type { get; }
+        
+        public BenchmarkParameter(string name, object[] values, BenchmarkParameterType type)
         {
             Name = name;
             Values = values;
+            Type = type;
         }
 
         public override string ToString()

@@ -14,7 +14,9 @@ namespace BenchmarkRunner
 
         public bool IsVariable => Parameter.IsVariable;
 
-        public string GetBenchmarkRunnerArgString() => $"--arg \"-{Parameter.Name}={Value}\"";
+        public string GetBenchmarkRunnerArgString() => Parameter.Type == BenchmarkParameterType.Argument
+            ? $"--arg \"-{Parameter.Name}={Value}\""
+            : $"-e {Parameter.Name}={Value}";
 
         public override string ToString() => $"{Parameter.Name}={Value}";
     }
