@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 
 namespace BenchmarkRunner
 {
-    public static class Utilities
+    public static class BenchmarkRunnerUtilities
     {
         public static void ParseIfInt(string line, string match, ref int value)
         {

@@ -17,15 +17,20 @@ namespace BenchmarkRunner
 
         public IEnumerable<char> Names => _parameters.Select(p => p.Name);
 
-        public IEnumerable<char> NonTrivialNames => _parameters.Where(p => p.IsVariable).Select(p => p.Name);
+        public IEnumerable<char> VariableNames => _parameters.Where(p => p.IsVariable).Select(p => p.Name);
 
         public BenchmarkParameter this[char name] => _parameters.First(p => p.Name == name);
         
         public IEnumerator<BenchmarkParameter> GetEnumerator() => _parameters.GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => _parameters.GetEnumerator();
+
+        public static BenchmarkParameterSet Parse(string parameters, string environmentVariables)
+        {
+            return Parse(parameters.Split(' '));
+        }
         
-        public static BenchmarkParameterSet Parse(params string[] args)
+        private static BenchmarkParameterSet Parse(string[] args)
         {
             List<BenchmarkParameter> result = new List<BenchmarkParameter>();
             
@@ -68,7 +73,7 @@ namespace BenchmarkRunner
         /// <summary>
         /// List all possible configurations.
         /// </summary>
-        public IEnumerable<IReadOnlyList<object>> CartesianProduct()
+        public IEnumerable<IReadOnlyList<BenchmarkParameterAssignment>> CartesianProduct()
         {
             using CartesianEnumerator enumerator = new CartesianEnumerator(_parameters);
             while (enumerator.MoveNext())
@@ -77,37 +82,25 @@ namespace BenchmarkRunner
             }
         }
 
-        public string GetBenchmarkRunnerParameterStringForLine(IReadOnlyList<object> line)
+        public string GetBenchmarkRunnerParameterStringForLine(IReadOnlyList<BenchmarkParameterAssignment> line)
         {
             StringBuilder bld = new StringBuilder();
             
-            for (int i = 0; i < _parameters.Count; i++)
+            for (int i = 0; i < line.Count; i++)
             {
-                char name = _parameters[i].Name;
-                object value = line[i];
+                BenchmarkParameterAssignment p = line[i];
                 if (i > 0) bld.Append(' ');
-                bld.Append($"--arg \"-{name}={value}\"");
+                bld.Append(p.GetBenchmarkRunnerArgString());
             }
 
             return bld.ToString();
         }
 
-        public IEnumerable<object> GetVariableValues(IReadOnlyList<object> line)
-        {
-            for (int i = 0; i < _parameters.Count; i++)
-            {
-                if (_parameters[i].IsVariable)
-                {
-                    yield return line[i];
-                }
-            }
-        }
-
-        struct CartesianEnumerator : IEnumerator<IReadOnlyList<object>>
+        struct CartesianEnumerator : IEnumerator<IReadOnlyList<BenchmarkParameterAssignment>>
         {
             private int _position;
             private readonly IReadOnlyList<BenchmarkParameter> _parameters;
-            private object[] _currentLine;
+            private BenchmarkParameterAssignment[] _currentLine;
             private int _max;
             
             public CartesianEnumerator(IReadOnlyList<BenchmarkParameter> parameters)
@@ -136,7 +129,7 @@ namespace BenchmarkRunner
                 _currentLine = null;
             }
 
-            public IReadOnlyList<object> Current => _currentLine;
+            public IReadOnlyList<BenchmarkParameterAssignment> Current => _currentLine;
 
             object? IEnumerator.Current => Current;
 
@@ -144,16 +137,16 @@ namespace BenchmarkRunner
             {
             }
 
-            private object[] FetchCurrentLine()
+            private BenchmarkParameterAssignment[] FetchCurrentLine()
             {
-                object[] result = new object[_parameters.Count];
+                var result = new BenchmarkParameterAssignment[_parameters.Count];
                 int idx = _position;
                 
                 for (int i = _parameters.Count - 1; i >= 0; i--)
                 {
                     BenchmarkParameter p = _parameters[i];
                     int valueIdx = idx % p.Values.Length;
-                    result[i] =  p.Values[valueIdx];
+                    result[i] = p.GetAssignment(valueIdx);
                     idx /= p.Values.Length;
                 }
 

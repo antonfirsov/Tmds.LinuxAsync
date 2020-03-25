@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace BenchmarkRunner
@@ -12,7 +13,7 @@ namespace BenchmarkRunner
         static void Main(string[] args)
         {
             Options options = Options.Parse(args);
-            BenchmarkParameterSet parameterSet = BenchmarkParameterSet.Parse(args);
+            BenchmarkParameterSet parameterSet = BenchmarkParameterSet.Parse(options.Parameters, options.EnvironmentVariables);
 
             Console.WriteLine("Benchmarking with parameters:");
             Console.WriteLine(parameterSet);
@@ -25,15 +26,27 @@ namespace BenchmarkRunner
             Console.WriteLine($"Saving output to {csvFile}");
 
             using var csvWriter = new CsvWriter(csvFile);
-            csvWriter.AppendRange(parameterSet.NonTrivialNames);
+            bool includeConstants = options.IncludeConstants.HasValue && options.IncludeConstants.Value;
+            csvWriter.AppendRange(includeConstants ? parameterSet.Names : parameterSet.VariableNames);
+
+
             csvWriter.Append("RPS");
             csvWriter.Append("CPU");
             csvWriter.Append("latency");
             csvWriter.EndLine();
 
-            foreach (IReadOnlyList<object> paramLine in parameterSet.CartesianProduct())
+            foreach (IReadOnlyList<BenchmarkParameterAssignment> paramLine in parameterSet.CartesianProduct())
             {
-                csvWriter.AppendRange(parameterSet.GetVariableValues(paramLine));
+                if (includeConstants)
+                {
+                    csvWriter.AppendRange(paramLine);
+                }
+                else
+                {
+                    var variables = paramLine.Where(a => a.IsVariable);
+                    csvWriter.AppendRange(variables);
+                }
+                
                 string commandSuffix = parameterSet.GetBenchmarkRunnerParameterStringForLine(paramLine);
 
                 var startInfo = new ProcessStartInfo()
@@ -59,9 +72,9 @@ namespace BenchmarkRunner
                     if (!string.IsNullOrEmpty(l) && !l.StartsWith('[') && !l.StartsWith("failed"))
                     {
                         Console.WriteLine(l);
-                        Utilities.ParseIfInt(l, "RequestsPerSecond:", ref rps);
-                        Utilities.ParseIfInt(l, "Max CPU (%):", ref maxCpu);
-                        Utilities.ParseIfFloat(l, "Avg. Latency (ms):", ref latency);
+                        BenchmarkRunnerUtilities.ParseIfInt(l, "RequestsPerSecond:", ref rps);
+                        BenchmarkRunnerUtilities.ParseIfInt(l, "Max CPU (%):", ref maxCpu);
+                        BenchmarkRunnerUtilities.ParseIfFloat(l, "Avg. Latency (ms):", ref latency);
                     }
                 }
 

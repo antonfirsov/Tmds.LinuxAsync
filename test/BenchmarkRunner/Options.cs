@@ -11,6 +11,9 @@ namespace BenchmarkRunner
         [Option( "out-csv", Required = false, Default = "./result", HelpText = "Prefix / path of the output CSV file")]
         public string OutCsv { get; set; }
         
+        [Option( "include-constants", Required = false, Default = false, HelpText = "true/false")]
+        public bool? IncludeConstants { get; set; }
+        
         [Option( "server", Required = false, Default = "http://asp-perf-lin:5001", HelpText = "Server address")]
         public string Server { get; set; }
         
@@ -37,6 +40,12 @@ namespace BenchmarkRunner
         
         [Option("path", Required = false, Default = "/json", HelpText = "Path for benchmark")]
         public string Path { get; set; }
+        
+        [Option('p', "parameters", Required = true, HelpText = "Whitespace separated list of parameter definitions. Eg. \"e=epoll,iouring c=true,false t=4..8\"")]
+        public string Parameters { get; set; }
+        
+        [Option('e', "env", Required = false, HelpText = "Whitespace separated definition of environment variable definitions. Eg. \"COMPlus_ThreadPool_UnfairSemaphoreSpinLimit=0,1 COMPlus_HillClimbing_Disable=0,1\"")]
+        public string EnvironmentVariables { get; set; }
         
         private static Parser CreateParser()
             => new Parser(settings =>

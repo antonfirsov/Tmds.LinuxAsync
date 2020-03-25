@@ -12,18 +12,20 @@ namespace BenchmarkRunner
             string[] stuff = {
                 "--benchmarks-driver", @"C:\uff\puff",
                 "--server", "http://lol-foo:5001",
+                "-p", "a=42"
             };
             Options options = Options.Parse(stuff);
             
             Assert.Equal(stuff[1], options.BenchmarksDriverPath);
             Assert.Equal(stuff[3], options.Server);
             Assert.Equal("/json", options.Path);
+            Assert.Equal("a=42", options.Parameters);
         }
 
         [Fact]
         public void BenchmarkParameterSet_Parse()
         {
-            var set = BenchmarkParameterSet.Parse("-e=epoll,iouring", "-t=3..6", "r=false", "x=0..1", "--server", "http://lololol");
+            var set = BenchmarkParameterSet.Parse("-e=epoll,iouring -t=3..6 r=false x=0..1 --server http://lololol", "");
 
             BenchmarkParameter e = set['e'];
             BenchmarkParameter t = set['t'];
@@ -45,9 +47,9 @@ namespace BenchmarkRunner
         [Fact]
         public void BenchmarkParameterSet_CartesianProduct()
         {
-            var set = BenchmarkParameterSet.Parse("-e=epoll,iouring", "-t=3..5", "r=false", "x=0..1");
+            var set = BenchmarkParameterSet.Parse("-e=epoll,iouring -t=3..5 r=false x=0..1", "");
 
-            IReadOnlyList<object>[] data = set.CartesianProduct().ToArray();
+            IReadOnlyList<BenchmarkParameterAssignment>[] data = set.CartesianProduct().ToArray();
             // 2 * 4 * 1 * 2
             Assert.Equal(2 * 3 * 1 * 2, data.Length);
             
@@ -69,7 +71,7 @@ namespace BenchmarkRunner
         [Fact]
         public void BenchmarkParameterSet_GetBenchmarkRunnerParameterStringForLine()
         {
-            var set = BenchmarkParameterSet.Parse("-e=epoll,iouring", "r=false,true", "-t=3..4");
+            var set = BenchmarkParameterSet.Parse("-e=epoll,iouring r=false,true -t=3..4", "");
 
             string[] lines = set.CartesianProduct().Select(l => set.GetBenchmarkRunnerParameterStringForLine(l)).ToArray();
             
@@ -83,7 +85,7 @@ namespace BenchmarkRunner
         public void Utilities_ParseIfInt(string str, string match, int expected)
         {
             int result = 0;
-            Utilities.ParseIfInt(str, match, ref result);
+            BenchmarkRunnerUtilities.ParseIfInt(str, match, ref result);
             Assert.Equal(expected, result);
         }
         
@@ -92,13 +94,13 @@ namespace BenchmarkRunner
         public void Utilities_ParseIfFloat(string str, string match, float expected)
         {
             float result = 0;
-            Utilities.ParseIfFloat(str, match, ref result);
+            BenchmarkRunnerUtilities.ParseIfFloat(str, match, ref result);
             Assert.Equal(expected, result);
         }
 
-        private static void CheckRow(IReadOnlyList<object> data, int idx, params object[] expected)
+        private static void CheckRow(IReadOnlyList<BenchmarkParameterAssignment>[] data, int idx, params object[] expected)
         {
-            Assert.Equal(expected, data[idx]);
+            Assert.Equal(expected, data[idx].Select(a => a.Value).ToArray());
         }
     }
 }

@@ -29,5 +29,8 @@ namespace BenchmarkRunner
 
             return bld.ToString();
         }
+
+        public BenchmarkParameterAssignment GetAssignment(int valueIndex) =>
+            new BenchmarkParameterAssignment(this, Values[valueIndex]);
     }
 }
