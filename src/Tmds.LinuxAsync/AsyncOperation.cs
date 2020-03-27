@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Threading;
 
 namespace Tmds.LinuxAsync
 {
@@ -17,17 +18,10 @@ namespace Tmds.LinuxAsync
     // * Handle signalling completion to the user.
     abstract class AsyncOperation
     {
-        sealed class AsyncOperationSentinel : AsyncOperation
+        protected AsyncOperation()
         {
-            public override bool IsReadNotWrite
-                => throw new System.InvalidOperationException();
-            public override void Complete()
-                => throw new System.InvalidOperationException();
-            public override AsyncExecutionResult TryExecute(bool triggeredByPoll, bool cancellationRequested, bool asyncOnly, AsyncExecutionQueue? executionQueue, AsyncExecutionCallback? callback, object? state, int data, AsyncOperationResult result)
-                => throw new System.InvalidOperationException();
+            Next = this;
         }
-
-        public static readonly AsyncOperation DisposedSentinel = new AsyncOperationSentinel();
 
         // AsyncContext on whith the operation is performed.
         // This value gets set by AsyncContext, and cleared by the AsyncOperation.
@@ -39,62 +33,48 @@ namespace Tmds.LinuxAsync
         // Can be used to create a queue of AsyncOperations.
         public AsyncOperation? Next;
 
-
-
-        // Track state of the AsyncOperation while it is executing to support cancellation.
-        // Thread safety is the caller's responsibility.
-
-        // Is the operation being executed.
-        public bool IsExecuting { get; set; }
+        private int _status;
+        // Holds requested completion flags for cancellation, and final completion flags.
+        public OperationStatus Status { get => (OperationStatus)_status; set => _status = (int)value; }
 
         // Was cancellation requested while the operation is executing.
-        public bool IsCancellationRequested => (CompletionFlags & OperationCompletionFlags.OperationCancelled) != 0;
+        public bool IsCancellationRequested => (Status & OperationStatus.CancellationRequested) != 0;
 
-        // Holds requested completion flags for cancellation, and final completion flags.
-        public OperationCompletionFlags CompletionFlags { get; set; }
+        public bool VolatileReadIsCancellationRequested()
+            => ((OperationStatus)Volatile.Read(ref _status) & OperationStatus.CancellationRequested) != 0;
 
-        // Requests the operation to be marked as cancelled.
-        // Returns CancellationRequestResult.Cancelled when the operation was cancelled synchronously.
-        // Returns CancellationRequestResult.Requested when the operation is marked for async cancellation.
-        public CancellationRequestResult RequestCancellationAsync(OperationCompletionFlags flags)
+        public OperationStatus CompareExchangeStatus(OperationStatus status, OperationStatus comparand)
         {
-            Debug.Assert((CompletionFlags & (OperationCompletionFlags.OperationFinished | OperationCompletionFlags.OperationCancelled)) == 0);
-
-            CompletionFlags = OperationCompletionFlags.CompletedCanceled | flags;
-            return IsExecuting ? CancellationRequestResult.Requested : CancellationRequestResult.Cancelled;
+            return (OperationStatus)Interlocked.CompareExchange(ref _status, (int)status, (int)comparand);
         }
+
         // Completes the AsyncOperation.
         public abstract void Complete();
 
         // Try to execute the operation. Returns true when done, false it should be tried again.
-        public bool TryExecuteSync()
-            => TryExecute(triggeredByPoll: false, cancellationRequested: false, asyncOnly: false, executionQueue: null, callback: null, state: null, data: 0, AsyncOperationResult.NoResult) == AsyncExecutionResult.Finished;
+        public abstract bool TryExecuteSync();
 
-        // Continues execution of this operation.
-        // When the operation is finished, AsyncExecutionResult.Finished is returned.
-        // The executionQueue, when not null, can be used to batch operations.
-        //   The callback, state, and data arguments must be passed on to the executionQueue.
-        // When the executionQueue is used, AsyncExecutionResult.Executing is returned.
-        // When the batched operations completes, the method is called again and 'result' has a value.
-        // The execution queue may or may not support poll operations (ExecutionQueue.SupportsPolling).
-        // In case there is no execution queue, or the queue does not support polling, the method
-        // can return WaitForPoll. The method will be called again when poll indicates the handle is ready,
-        // (and triggeredByPoll is true).
-        // When asyncOnly is set, the execution queue must be used. If it cannot be used, WaitForPoll
-        // must be returned.
-        // When cancellationRequested is set, the operation must finish with
-        //   AsyncExecutionResult.Finished when the operation completed using 'result'; and
-        //   AsyncOperationResult.Cancelled otherwise.
-        public abstract AsyncExecutionResult TryExecute(bool triggeredByPoll, bool cancellationRequested, bool asyncOnly, AsyncExecutionQueue? executionQueue, AsyncExecutionCallback? callback, object? state, int data, AsyncOperationResult result);
+        // Asynchronously executes the operation on the io-thread.
+        // The AsyncExecutionQueue when provided may be used to batch operations.
+        // When the operation can make use of the executionQueue, AsyncExecutionResult.Executing is returned.
+        // When the operation cannot make use of the queue, the operation is attempted synchronously
+        // and WaitForPoll/Finished is returned.
+        public abstract AsyncExecutionResult TryExecuteAsync(bool triggeredByPoll, AsyncExecutionQueue? executionQueue, AsyncExecutionCallback? callback, object? state, int data);
+
+        // Handles the result from the ExecutionQueue,
+        // Returns Executing if the operation should be tried immediately,
+        // WaitForPoll if the operation should be tried when the handle is ready.
+        // Finished/Cancelled when the operation is finished.
+        public abstract AsyncExecutionResult HandleAsyncResult(AsyncOperationResult result);
 
         // Requests operation to be cancelled.
-        public void TryCancelAndComplete(OperationCompletionFlags completionFlags = OperationCompletionFlags.None)
+        public void TryCancelAndComplete(OperationStatus status = OperationStatus.None)
         {
             AsyncContext? context = CurrentAsyncContext;
             // When context is null, the operation completed already.
             if (context != null)
             {
-                context.TryCancelAndComplete(this, completionFlags);
+                context.TryCancelAndComplete(this, status);
             }
         }
 
@@ -102,15 +82,21 @@ namespace Tmds.LinuxAsync
         {
             AsyncContext asyncContext = CurrentAsyncContext!;
             CurrentAsyncContext = null;
-            CompletionFlags = OperationCompletionFlags.None;
 
-            if (IsReadNotWrite)
+            // We don't re-use operations that were cancelled async,
+            // because cancellation is detected via StatusFlags.
+            if ((Status & OperationStatus.CancelledSync) != OperationStatus.Cancelled)
             {
-                asyncContext.ReturnReadOperation(this);
-            }
-            else
-            {
-                asyncContext.ReturnWriteOperation(this);
+                Status = OperationStatus.None;
+
+                if (IsReadNotWrite)
+                {
+                    asyncContext.ReturnReadOperation(this);
+                }
+                else
+                {
+                    asyncContext.ReturnWriteOperation(this);
+                }
             }
         }
     }
