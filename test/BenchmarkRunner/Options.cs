@@ -47,7 +47,7 @@ namespace BenchmarkRunner
         [Option('p', "parameters", Required = true, HelpText = "Whitespace separated list of parameter definitions. Eg. \"e=epoll,iouring c=true,false t=4..8\"")]
         public string Parameters { get; set; }
         
-        [Option('e', "env", Required = false, HelpText = "Whitespace separated definition of environment variable definitions. Eg. \"COMPlus_ThreadPool_UnfairSemaphoreSpinLimit=0,1 COMPlus_HillClimbing_Disable=0,1\"")]
+        [Option('e', "env", Required = false, Default  = "", HelpText = "Whitespace separated definition of environment variable definitions. Eg. \"COMPlus_ThreadPool_UnfairSemaphoreSpinLimit=0,1 COMPlus_HillClimbing_Disable=0,1\"")]
         public string EnvironmentVariables { get; set; }
         
         private static Parser CreateParser()
