@@ -64,26 +64,39 @@ namespace BenchmarkRunner
                 int maxCpu = default;
                 float latency = default;
 
-                using Process process = Process.Start(startInfo);
-
-                StreamReader stdOut = process.StandardOutput;
-                for (string l = stdOut.ReadLine(); l != null; l = stdOut.ReadLine())
+                bool success = false;
+                for (int retryCount = 0; !success && retryCount < 20; retryCount++)
                 {
-                    if (!string.IsNullOrEmpty(l) && !l.StartsWith('[') && !l.StartsWith("failed"))
+                    using Process process = Process.Start(startInfo);
+
+                    StreamReader stdOut = process.StandardOutput;
+
+                    bool roundSucceeded = true;
+                    for (string l = stdOut.ReadLine(); l != null; l = stdOut.ReadLine())
                     {
-                        Console.WriteLine(l);
-                        BenchmarkRunnerUtilities.ParseIfInt(l, "RequestsPerSecond:", ref rps);
-                        BenchmarkRunnerUtilities.ParseIfInt(l, "Max CPU (%):", ref maxCpu);
-                        BenchmarkRunnerUtilities.ParseIfFloat(l, "Avg. Latency (ms):", ref latency);
+                        if (!string.IsNullOrEmpty(l) && !l.StartsWith('[') && !l.StartsWith("failed"))
+                        {
+                            Console.WriteLine(l);
+                            if (l.Contains("is invalid or not responsive", StringComparison.OrdinalIgnoreCase))
+                            {
+                                Console.WriteLine($"**** RETRY the run! ({retryCount})");
+                                roundSucceeded = false;
+                                break;
+                            }
+                            BenchmarkRunnerUtilities.ParseIfInt(l, "RequestsPerSecond:", ref rps);
+                            BenchmarkRunnerUtilities.ParseIfInt(l, "Max CPU (%):", ref maxCpu);
+                            BenchmarkRunnerUtilities.ParseIfFloat(l, "Avg. Latency (ms):", ref latency);
+                        }
                     }
+
+                    process.WaitForExit();
+                    success = roundSucceeded;
+
+                    csvWriter.Append(rps);
+                    csvWriter.Append(maxCpu);
+                    csvWriter.Append(latency);
+                    csvWriter.EndLine();
                 }
-
-                process.WaitForExit();
-
-                csvWriter.Append(rps);
-                csvWriter.Append(maxCpu);
-                csvWriter.Append(latency);
-                csvWriter.EndLine();
             }
         }
     }
