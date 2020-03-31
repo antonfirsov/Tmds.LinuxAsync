@@ -89,13 +89,19 @@ namespace BenchmarkRunner
                         }
                     }
 
-                    process.WaitForExit();
                     success = roundSucceeded;
-
-                    csvWriter.Append(rps);
-                    csvWriter.Append(maxCpu);
-                    csvWriter.Append(latency);
-                    csvWriter.EndLine();
+                    if (success)
+                    {
+                        process.WaitForExit();
+                        csvWriter.Append(rps);
+                        csvWriter.Append(maxCpu);
+                        csvWriter.Append(latency);
+                        csvWriter.EndLine();
+                    }
+                    else 
+                    {
+                        process.Kill();
+                    }
                 }
             }
         }
