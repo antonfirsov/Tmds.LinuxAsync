@@ -14,6 +14,9 @@ namespace BenchmarkRunner
         [Option( "include-constants", Required = false, Default = false, HelpText = "true/false")]
         public bool? IncludeConstants { get; set; }
         
+        [Option("self-contained", Required = false, Default = false)]
+        public bool SelfContained { get; set; }
+        
         [Option( "server", Required = false, Default = "http://asp-perf-lin:5001", HelpText = "Server address")]
         public string Server { get; set; }
         

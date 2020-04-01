@@ -26,6 +26,11 @@ namespace BenchmarkRunner
             {
                 commandPrefix += $" --kestrelThreadCount {options.KestrelThreadCount}";
             }
+
+            if (options.SelfContained)
+            {
+                commandPrefix += $" --self-contained";
+            }
             
             string csvFile = $"{options.OutCsv}_{DateTime.Now:MM-dd-yyyy__HH-mm-ss}.csv";
             Console.WriteLine($"Saving output to {csvFile}");
