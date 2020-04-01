@@ -10,7 +10,7 @@ namespace Tmds.LinuxAsync
 {
     public partial class IOUringAsyncEngine
     {
-        sealed class IOUringThread : PipeScheduler, IDisposable
+        sealed class IOUringThread : PipeScheduler, IDisposable, IAsyncExecutionResultHandler
         {
             private const int PipeKey = -1;
             private const int StateBlocked = 1;
@@ -86,18 +86,6 @@ namespace Tmds.LinuxAsync
 
                     // Complete pending async operations.
                     iouring.Dispose();
-
-                    IOUringAsyncContext[] contexts;
-                    lock (_asyncContexts)
-                    {
-                        contexts = new IOUringAsyncContext[_asyncContexts.Count];
-                        _asyncContexts.Values.CopyTo(contexts, 0);
-                        _asyncContexts.Clear();
-                    }
-                    foreach (var context in contexts)
-                    {
-                        context.Dispose();
-                    }
 
                     FreeResources();
                 }
@@ -211,6 +199,10 @@ namespace Tmds.LinuxAsync
                     {
                         return;
                     }
+                    if (_asyncContexts.Count > 0)
+                    {
+                        throw new InvalidOperationException("There are undisposed AsyncContexts.");
+                    }
                     _disposed = true;
                 }
 
@@ -221,24 +213,24 @@ namespace Tmds.LinuxAsync
 
             private void AddReadFromEventFd()
             {
-                _iouring!.AddRead(_eventFd!, _dummyReadBuffer,
-                (AsyncOperationResult asyncResult, object? state, int data) =>
-                    {
-                        // TODO: do we need to do a volatile read of _disposed?
-                        if (asyncResult.Errno == EAGAIN || (!asyncResult.IsError && asyncResult.Value == 8))
-                        {
-                            ((IOUringThread)state!).AddReadFromEventFd();
-                        }
-                        else if (asyncResult.IsError)
-                        {
-                            PlatformException.Throw(asyncResult.Errno);
-                        }
-                        else
-                        {
-                            ThrowHelper.ThrowIndexOutOfRange(asyncResult.Value);
-                        }
-                    }
-                , this, 0);
+                _iouring!.AddRead(_eventFd!, _dummyReadBuffer, this, 0);
+            }
+
+            void IAsyncExecutionResultHandler.HandleAsyncResult(AsyncOperationResult asyncResult)
+            {
+                // TODO: do we need to do a volatile read of _disposed?
+                if (asyncResult.Errno == EAGAIN || (!asyncResult.IsError && asyncResult.Value == 8))
+                {
+                    AddReadFromEventFd();
+                }
+                else if (asyncResult.IsError)
+                {
+                    PlatformException.Throw(asyncResult.Errno);
+                }
+                else
+                {
+                    ThrowHelper.ThrowIndexOutOfRange(asyncResult.Value);
+                }
             }
 
             private unsafe void CreateResources()

@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks.Sources;
+using static Tmds.Linux.LibC;
 
 namespace Tmds.LinuxAsync
 {
@@ -36,20 +37,18 @@ namespace Tmds.LinuxAsync
 
         public override void Complete()
         {
-            Debug.Assert((CompletionFlags & (OperationCompletionFlags.OperationCancelled | OperationCompletionFlags.OperationFinished)) != 0);
-
             SocketError socketError = SocketError;
-            OperationCompletionFlags completionFlags = CompletionFlags;
+            OperationStatus status = Status;
             ResetOperationState();
 
-            if ((completionFlags & OperationCompletionFlags.CompletedCanceledSync) == OperationCompletionFlags.CompletedCanceledSync)
+            if ((status & OperationStatus.CancelledSync) == OperationStatus.CancelledSync)
             {
                 // Caller threw an exception which prevents further use of this.
                 ResetAndReturnThis();
             }
             else
             {
-                _core.SetResult(0, socketError, completionFlags);
+                _core.SetResult(0, socketError, status);
             }
         }
 
@@ -70,13 +69,11 @@ namespace Tmds.LinuxAsync
 
         public override void Complete()
         {
-            Debug.Assert((CompletionFlags & (OperationCompletionFlags.OperationCancelled | OperationCompletionFlags.OperationFinished)) != 0);
-
             SetSaeaResult();
             ResetOperationState();
 
             bool runContinuationsAsync = _saea.RunContinuationsAsynchronously;
-            bool completeSync = (CompletionFlags & OperationCompletionFlags.CompletedSync) != 0;
+            bool completeSync = (Status & OperationStatus.Sync) != 0;
             if (completeSync || !runContinuationsAsync)
             {
                 ((IThreadPoolWorkItem)this).Execute();
@@ -95,11 +92,11 @@ namespace Tmds.LinuxAsync
         void IThreadPoolWorkItem.Execute()
         {
             // Capture state.
-            OperationCompletionFlags completionStatus = CompletionFlags;
+            OperationStatus completionStatus = Status;
 
             // Reset state.
-            CompletionFlags = OperationCompletionFlags.None;
-            CurrentAsyncContext = null;
+            Status = OperationStatus.None;
+            CurrentQueue = null;
 
             // Complete.
             _saea.Complete(completionStatus);
@@ -120,59 +117,64 @@ namespace Tmds.LinuxAsync
         {
             Socket = socket;
             EndPoint = endPoint;
+
+            if (endPoint.GetType() != typeof(IPEndPoint))
+            {
+                throw new NotSupportedException();
+            }
         }
 
-        public override bool IsReadNotWrite => false;
-
-        public override AsyncExecutionResult TryExecute(bool triggeredByPoll, bool isCancellationRequested, bool asyncOnly, AsyncExecutionQueue? executionQueue, AsyncExecutionCallback? callback, object? state, int data, AsyncOperationResult asyncResult)
+        public override bool TryExecuteSync()
         {
             Socket socket = Socket!;
-            IPEndPoint? ipEndPoint = EndPoint as IPEndPoint;
-
-            if (ipEndPoint == null)
+            IPEndPoint ipEndPoint = (IPEndPoint)EndPoint!;
+            SocketError socketError = SocketPal.Connect(socket.SafeHandle, ipEndPoint);
+            if (socketError == SocketError.InProgress)
             {
-                ThrowHelper.ThrowInvalidOperationException();
+                return false;
             }
+            SocketError = socketError;
+            return true;
+        }
 
-            // When there is a pollable executionQueue, use it to poll, and then try the operation.
-            bool hasPollableExecutionQueue = executionQueue?.SupportsPolling == true;
-            bool trySync = !hasPollableExecutionQueue && !asyncOnly;
-            if (trySync || asyncResult.HasResult)
+        public override AsyncExecutionResult TryExecuteEpollAsync(bool triggeredByPoll, AsyncExecutionQueue? executionQueue, IAsyncExecutionResultHandler callback)
+        {
+            if (!_connectCalled)
             {
-                SocketError socketError;
-                if (!_connectCalled)
-                {
-                    socketError = SocketPal.Connect(socket.SafeHandle, ipEndPoint);
-                    _connectCalled = true;
-                }
-                else
-                {
-                    // TODO: read SOL_SOCKET, SO_ERROR to get errorcode...
-                    socketError = SocketError.Success;
-                }
-                if (socketError != SocketError.InProgress)
-                {
-                    SocketError = socketError;
-                    return AsyncExecutionResult.Finished;
-                }
-            }
-
-            if (isCancellationRequested)
-            {
-                SocketError = SocketError.OperationAborted;
-                return AsyncExecutionResult.Cancelled;
-            }
-
-            // poll
-            if (hasPollableExecutionQueue)
-            {
-                executionQueue!.AddPollOut(socket.SafeHandle, callback!, state, data);
-                return AsyncExecutionResult.Executing;
+                _connectCalled = true;
+                bool finished = TryExecuteSync();
+                return finished ? AsyncExecutionResult.Finished : AsyncExecutionResult.WaitForPoll;
             }
             else
             {
+                if (triggeredByPoll)
+                {
+                    // TODO: read SOL_SOCKET, SO_ERROR to get errorcode...
+                    SocketError = SocketError.Success;
+                    return AsyncExecutionResult.Finished;
+                }
                 return AsyncExecutionResult.WaitForPoll;
             }
+        }
+
+        public override AsyncExecutionResult TryExecuteIOUringAsync(AsyncExecutionQueue executionQueue, IAsyncExecutionResultHandler callback, int key)
+        {
+            Socket socket = Socket!;
+            executionQueue!.AddPollOut(socket.SafeHandle, callback!, key);
+            return AsyncExecutionResult.Executing;
+        }
+
+        public override AsyncExecutionResult HandleAsyncResult(AsyncOperationResult asyncResult)
+        {
+            if (asyncResult.Errno == ECANCELED)
+            {
+                return AsyncExecutionResult.Cancelled;
+            }
+
+            // poll says we're ready
+            // TODO: read SOL_SOCKET, SO_ERROR to get errorcode...
+            SocketError = SocketError.Success;
+            return AsyncExecutionResult.Finished;
         }
 
         protected void ResetOperationState()
