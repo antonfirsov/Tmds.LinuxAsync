@@ -19,7 +19,7 @@ namespace web
 
             if (isSuccess)
             {
-                // AsyncEngine.SocketEngine = CreateAsyncEngine(options);
+                AsyncEngine.SocketEngine = CreateAsyncEngine(options);
 
                 if (options.RawSocket)
                 {
