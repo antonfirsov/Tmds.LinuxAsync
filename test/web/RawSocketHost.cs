@@ -57,7 +57,7 @@ namespace web
 
             while (true)
             {
-                Socket handler = await listener.AcceptAsync();
+                using Socket handler = await listener.AcceptAsync();
 
                 while (true)
                 {
