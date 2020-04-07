@@ -8,6 +8,9 @@ namespace BenchmarkRunner
         [Option( 'd', "benchmarks-driver", Required = true, HelpText = "Path of BenchmarksDriver")]
         public string BenchmarksDriverPath { get; set; }
         
+        [Option("raw-socket", Required = false, Default = false)]
+        public bool RawSocket { get; set; }
+        
         [Option( "out-csv", Required = false, Default = "./result", HelpText = "Prefix / path of the output CSV file")]
         public string OutCsv { get; set; }
         
