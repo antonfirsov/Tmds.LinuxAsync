@@ -34,7 +34,7 @@ namespace BenchmarkRunner
 
             if (options.RawSocket)
             {
-                commandPrefix += " --raw-socket";
+                commandPrefix += " --arg \"--raw-socket\"";
             }
             
             string csvFile = $"{options.OutCsv}_{DateTime.Now:MM-dd-yyyy__HH-mm-ss}.csv";
